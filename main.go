@@ -2,21 +2,21 @@ package main
 
 import "calculator/machine"
 import (
-	"fmt"
-	"log"
+    "fmt"
+    "log"
 )
 
 func main() {
 
-	fmt.Print("Enter your expression: ")
+    fmt.Print("Enter your expression: ")
 
-	var input string
-	fmt.Scanln(&input)
-	var answer, err = machine.Process(input)
+    var input string
+    fmt.Scanln(&input)
+    var answer, err = machine.Process(input)
 
-	if err != nil {
-		log.Fatal(err)
-	} else {
-		fmt.Println(answer)
-	}
+    if err != nil {
+        log.Fatal(err)
+    } else {
+        fmt.Println(answer)
+    }
 }
