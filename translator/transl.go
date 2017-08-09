@@ -4,12 +4,15 @@ import (
     "calculator/structs"
     "strconv"
     "fmt"
+    "strings"
+    "log"
 )
 
 var stackOperators = structs.NewStack()
 var stackOut = structs.NewStack()
+var stringOut = ""
 
-const operators = "+-*/"
+var operators = [4]string{"+", "-", "*", "/"}
 
 func makeSliceOfTwoNumbers(stack *structs.Stack) (string, string) {
     var bufStack = structs.NewStack()
@@ -51,76 +54,67 @@ func makeSliceOfTwoNumbers(stack *structs.Stack) (string, string) {
 
 }
 
-func Process(expression string) float64 {
-    for _, e := range expression {
-
-        var isOperator, level = isOperatorAndLevel(string(e))
-
-        if isOperator {
-            if stackOut.Size() > 1 {
-                var operatorHead, _ = stackOperators.Pop()
-                var _, levelHead = isOperatorAndLevel(operatorHead)
-                if level >= levelHead {
-                    fmt.Println(
-                        "[!level > levelHead!]  " +
-                            "\n [push into Operators] : " + string(e) +
-                            "\n [push into Operators] : " + operatorHead)
-                    stackOperators.Push(string(e))
-                    stackOperators.Push(operatorHead)
-                } else { //TODO: пока новый оператор меньше приоритетом, то выталкиваем в ответ
-                    stackOperators.Push(operatorHead)
-                    for stackOperators.Size() > 0 {
-                        var op, _ = stackOperators.Pop()
-                        var _, levelOp = isOperatorAndLevel(op)
-                        if levelOp > level {
-
-                            fmt.Print(
-                                "[!levelOp > level!]  " +
-                                    "\n [push into Operators] : " + op +
-                                    "\n [push into Operators] : " + string(e))
-
-                            stackOperators.Push(op)
-                            stackOperators.Push(string(e))
-                        } else {
-                            stackOut.Push(op)
-                        }
-                    }
+func translate(expr string) string {
+    var bufStackOperators = structs.NewStack()
+    for _, e := range expr {
+        if isOperator, precedenceCurrentOperator := isOperatorAndLevel(string(e)); isOperator {
+            for stackOperators.Size() > 0 {
+                var operatorInStack, _ = stackOperators.Pop()
+                if _, precedenceOperatorInStack := isOperatorAndLevel(string(operatorInStack));
+                    precedenceOperatorInStack >= precedenceCurrentOperator {
+                    stringOut += string(operatorInStack)
+                } else {
+                    bufStackOperators.Push(operatorInStack)
                 }
-            } else {
-                stackOperators.Push(string(e))
             }
+            for bufStackOperators.Size() > 0 {
+                var e, _ = bufStackOperators.Pop()
+                stackOperators.Push(e)
+            }
+            stackOperators.Push(string(e))
         } else {
-            stackOut.Push(string(e))
+            stringOut += string(e)
         }
     }
-    return postProcess(stackOut)
+
+    for stackOperators.Size() > 0 {
+        var operator, _ = stackOperators.Pop()
+        stringOut += operator
+    }
+    return stringOut
 }
 
-func postProcess(stack *structs.Stack) float64 {
-    for stackOperators.Size() > 0 {
-        var e, _ = stackOperators.Pop()
-        stack.Push(e)
-    }
-    var floatAnswer float64
-    fmt.Print("[stackOut]: ")
-    fmt.Println(stack)
-    for stack.Size() > 1 {
-        var valuePopped, _ = stack.Pop()
-        var isOperator, _ = isOperatorAndLevel(valuePopped)
-        fmt.Println("[valuePopped] : " + valuePopped)
-        if isOperator {
-            var lOperand, rOperand = makeSliceOfTwoNumbers(stack)
-            fmt.Println("[leftOperand]: " + lOperand + "\n" +
-                "[rightOperand]:" + rOperand)
-            floatAnswer += calculate(lOperand, rOperand, valuePopped)
+func Process(expression string) float64 {
+    return solve(translate(expression))
+}
+func solve(rpnExp string) float64 {
+    for _, token := range rpnExp {
+        if isOperator, _ := isOperatorAndLevel(string(token)); isOperator {
+            if stackOut.Size() < 2 {
+                log.Fatal("[Error]: the given RPN expression is not correct! = > " + rpnExp);
+            } else {
+                var leftOperand,_ = stackOut.Pop()
+                var rightOperand,_ = stackOut.Pop()
+                log.Println("[Info]: Trying to solve : " + leftOperand + " " + string(token) + " " + rightOperand)
+                var calAnswer = strconv.FormatInt(calculate(leftOperand, rightOperand, string(token)), 16)
+                stackOut.Push(string(calAnswer))
+                log.Print("[Info]: Answer ["+string(calAnswer)+"] is pushed onto the stack : ")
+                log.Println(stackOut)
+            }
+        } else {
+            stackOut.Push(string(token))
         }
+
     }
+    var answer,_ = stackOut.Pop()
+    var floatAnswer,_ = strconv.ParseFloat(answer, 64)
     return floatAnswer
 }
 
-func calculate(lOperand string, rOperand string, operator string) float64 {
-    var leftConverted, _ = strconv.ParseFloat(lOperand, 64)
-    var rightConverted, _ = strconv.ParseFloat(rOperand, 64)
+
+func calculate(lOperand string, rOperand string, operator string) int64 {
+    var leftConverted, _ = strconv.ParseInt(lOperand, 16, 64)
+    var rightConverted, _ = strconv.ParseInt(rOperand, 16, 64)
     switch operator {
     case "*":
         return leftConverted * rightConverted
@@ -137,7 +131,7 @@ func calculate(lOperand string, rOperand string, operator string) float64 {
 
 func isOperatorAndLevel(symbol string) (bool, int) {
     for l, e := range operators {
-        if symbol == string(e) {
+        if strings.ContainsAny(symbol, string(e)) {
             return true, l
         }
     }

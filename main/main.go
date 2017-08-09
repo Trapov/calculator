@@ -11,6 +11,6 @@ func main(){
     var input string
     fmt.Scanln(&input)
 
-	fmt.Print(translator.Process(input))
+	fmt.Println(translator.Process(input))
 
 }
