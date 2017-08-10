@@ -1,9 +1,9 @@
 package main
 
-import "calculator/machine"
 import (
     "fmt"
     "log"
+    "calculator/machine"
 )
 
 func main() {
